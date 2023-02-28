@@ -1,22 +1,50 @@
-fn main() {
-    let vec1 = vec!['a','b','c','d','e'];
-    let vec2 =  vec!['x','x','c','x','x'];
-    let allignment : Vec<usize> = vec![2];
+use std::borrow::Borrow;
+use std::cell::Ref;
+use std::{rc::Rc, cell::RefCell};
+use std::hash::Hash;
+#[derive(Debug, PartialEq, Eq)]
+pub struct TreeNode {
+  pub val: i32,
+  pub left: Option<Rc<RefCell<TreeNode>>>,
+  pub right: Option<Rc<RefCell<TreeNode>>>,
+}
 
-    
-    let(parts1, parts2) = vec1.into_iter().zip(vec2).enumerate().fold(
-        (Vec::new(),Vec::new()), |(mut parts1,mut parts2),(idx, parts)| {
-        if idx == 0 || allignment.contains(&idx) {
-            parts1.push(Vec::new());
-            parts2.push(Vec::new());
-        } 
-        if  !allignment.contains(&idx) {
-            parts1.last_mut().unwrap().push(parts.0);
-            parts2.last_mut().unwrap().push(parts.1);
-
+impl TreeNode {
+  #[inline]
+  pub fn new(val: i32) -> Self {
+    TreeNode {
+      val,
+      left: None,
+      right: None
+    }
+  }
+}
+impl TreeNode {
+    fn hash_req<H: std::hash::Hasher>(node :Rc<RefCell<TreeNode>> , state : &mut H) {
+        
+        let node : Ref<TreeNode> = node.as_ref().borrow();
+        if let Some(node) =&node.left {
+            let node_val = node.as_ref().borrow().val;
+            node_val.hash(state);
+            Self::hash_req(node.to_owned(),state);
         }
-        (parts1,parts2)
+        if let Some(node) =&node.right {
+            let node_val = node.as_ref().borrow().val;
+            node_val.hash(state);
+            Self::hash_req(node.to_owned(),state);
+        }
 
-    });
-    println!("{:?}{:?}",parts1,parts2);
+    }
+}
+impl Hash for TreeNode {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let node = TreeNode {val : self.val, left : self.left.clone(), right :self.left.clone()};
+        Self::hash_req(Rc::new(RefCell::new(node)), state);
+    }
+
+}
+
+
+fn main() {
+
 }
